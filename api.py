@@ -8,9 +8,13 @@ app = Flask(__name__)
 MODEL_PATH = './nsfw_mobilenet2.224x224.h5'
 model = predict.load_model(MODEL_PATH)
 
-# Endpoint para classificar uma única imagem
+
 @app.route('/classify-image', methods=['POST'])
 def classify_image():
+    """
+    Endpoint para classificar uma única imagem
+    http://127.0.0.1:5000/classify-image
+    """
     if 'image' not in request.files:
         return jsonify({'error': 'Nenhuma imagem enviada'}), 400
 
@@ -18,21 +22,23 @@ def classify_image():
     if image.filename == '':
         return jsonify({'error': 'Nenhuma imagem selecionada'}), 400
 
-    # Salvar a imagem temporariamente
     temp_path = './temp_image.jpg'
     image.save(temp_path)
 
-    # Classificar a imagem
     try:
         result = predict.classify(model, temp_path)
-        os.remove(temp_path)  # Remover a imagem temporária
+        os.remove(temp_path)
         return jsonify({'result': result})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Endpoint para classificar imagens em um diretório
+
 @app.route('/classify-directory', methods=['POST'])
 def classify_directory():
+    """
+    Endpoint para classificar imagens em um diretório
+    http://127.0.0.1:5000/classify-directory
+    """
     if 'directory' not in request.json:
         return jsonify({'error': 'Nenhum diretório fornecido'}), 400
 
@@ -43,18 +49,14 @@ def classify_directory():
     try:
         results = predict.classify(model, directory)
         formatted_results = {
-            image: {label: f"{probability * 100:.2f}%" for label, probability in predictions.items()}
+            image: {label: f"{probability * 100:.2f}%" for label,
+                    probability in predictions.items()}
             for image, predictions in results.items()
         }
         return jsonify({'results': formatted_results})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# Rota de teste
-@app.route('/')
-def index():
-    return jsonify({'message': 'API de Moderação NSFW está funcionando!'})
 
-# Rodar o servidor
 if __name__ == '__main__':
     app.run(debug=True)
